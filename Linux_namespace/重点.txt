@@ -1,0 +1,29 @@
+作用：namespace是Linux内核用来隔离内核资源的方式，通过namespace能让一些进程只能看到与自己相关的部分资源
+
+Linux中支持6种namespace，每种namespace对应一个flag，可以通过查看/proc/<pid>/ns文件来查看这六种namespace对应的文件描述符
+1、mnt(mount points, filesystems)： 隔离文件系统挂载点（CLONE_NEWNS）
+2、pid(process)：                   隔离pid（CLONE_NEWPID）
+3、net(network stack)：             隔离网络资源（CLONE_NEWNET）
+4、ipc(System V IPC)：              隔离进程间通信（CLONE_NEWIPC）
+5、uts(hostname)：                  隔离主机名和域名（CLONE_NEWUTS）
+6、user(UIDs)：                     隔离用户和用户组ID（CLONE_NEWUSER）
+
+与namespace相关的系统调用API有以下几个：
+
+// 创建新的进程同时创建新的namespaces，新的进程会被attach到新的namespace里
+1、int clone(int (*child_func)(void *), void *child_stack, int flags, void *arg);
+    child_func：子进程运行的主函数
+    child_stack：子进程的栈空间
+    flags：namespace标志位
+    arg：传入的参数
+
+// 将进程attach到一个已经存在的namespace里面
+2、int setns(int fd, int nstype);
+    fd：加入的namespace文件描述符
+    nstype：检查上述文件描述符是否符合要求，置0表示不检查
+
+// 不会创建新的进程，但是会创建新的namesapce并把当前的进程attach到该namespace里面
+3、int unshare(int flags);
+    flags：namespace标志位
+
+需要注意的一点：只有特权进程才可以设置上述flag，所以在运行代码时需要在特权进程下clone，即"sudo ./main" !!

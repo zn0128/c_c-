@@ -1,0 +1,18 @@
+https://github.com/balloonwj/CppGuide/blob/master/articles/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/socket%E7%9A%84%E9%98%BB%E5%A1%9E%E6%A8%A1%E5%BC%8F%E5%92%8C%E9%9D%9E%E9%98%BB%E5%A1%9E%E6%A8%A1%E5%BC%8F.md
+
+服务端： socket -> bind -> listen -> accept -> recv/send -> close
+客户端： socket -> connect -> recv/send -> close
+
+1、单线程情况，socket通信一次只能recv一个客户端的信息，如果有多个客户端同时和服务端连接，后连接客户端的accept操作会被阻塞，直到socket fd被释放
+2、多线程情况，可以同时接收多个客户端的信息
+3、c语言的多线程中，传递的函数地址和形参地址都是void*类型的，需要进行类型转换，详见server.cpp文件
+
+由于多线程的异步作用，在接收到第一个客户端连接后，在循环中无限进行客户端-服务端的send/recv，并且由于多线程异步跳出本次循环，并阻塞在下一次accept，由此可以进行下一次的客户端连接，实现同时接收多个客户端的信息
+
+使用多线程可以实现多个客户端同时访问服务端，使用epoll可以在单线程下提高多个客户端的轮询速度
+
+通过"lsof -i :6666"命令可以知道端口6666相关的全部进程
+
+每个socket被创建后，都会分配两个缓冲区，输入缓冲区和输出缓冲区
+调用send时，将数据写入缓冲区，在由TCP协议将数据发送到目标的缓冲区，并且一旦写入自己的缓冲区就直接返回；而调用recv时也是从自己的读缓冲区读取数据
+TCP协议下的send和recv都是阻塞的，也就是说send操作会阻塞直到将数据全部写入缓冲区，而recv操作会阻塞到成功读取数据
