@@ -1,0 +1,31 @@
+参考：https://blog.51cto.com/where2go/2954594?u_atoken=12655327-6bd1-4ef5-8ce5-e9789b97244c&u_asession=01mLqIRIy3Wq8J23oTVI3h831PfTeUfpYBD73YVe9H63sPx_2wWYd1t4xqCrC8APHNX0KNBwm7Lovlpxjd_P_q4JsKWYrT3W_NKPr8w6oU7K_OqqFTn2wLwHZajQiJ5168GALgmy0OhKJ6h8uIjom8j2BkFo3NEHBv0PZUm6pbxQU&u_asig=05xVYRAyyG4jUvWvkBikdy2AuHxjXAH2bR2beNle20gZbUd5VXmkzxEGlnupCM1LZC-jF3Yevm-8PsvMjPV3oNh30u2lEKB_cxNctb1gpvBtcNN2hacOihAbWV9WnXRCBA78nBrnymllT4qM3ZI7XJM_0qPSYI1kHFzeKTYNgf_gr9JS7q8ZD7Xtz2Ly-b0kmuyAKRFSVJkkdwVUnyHAIJzbdZBoQSDpqvgGdadP0Zbj4vM_x7u6psoIQlXVw4yT7ZBMZyRAui7XvSM8Ig_GQPYO3h9VXwMyh6PgyDIVSG1W98FMPLDY27wAeqdJuabnKihk9s9dQnJZZebwPWzRMyrseFyV8Qx8G9ih8LzLCzEgHca_29Gc2BsgeVbZwGaWtfmWspDxyAEEo4kbsryBKb9Q&u_aref=cetYFDZviPbCm%2Fc2hEEIMcxhGl8%3D
+
+
+JNI(Java Native Interface)的作用：
+1、在java中调用其他语言已经完成的现成功能
+2、java语言运行在JVM上，对JVM的依赖非常高，与c/c++相较效率更低，因此对一些执行效率要求更高的任务可以通过c/c++来实现
+3、当需要实现的功能依赖于操作系统底层的特性，java语言无法独立完成时可以借助其他语言，完成对底层的控制
+
+
+JNI实现过程：.class文件通过JNI调用编译连接过的动态链接库
+
+
+操作步骤：
+1、编写 HelloNative.java、HelloNative.c 程序
+2、执行 javac -d ./ -h ./ HelloNative.java  ：编译生成.class文件和HelloNative.h 头文件
+3、执行 gcc ./HelloNative.c -fPIC -shared -o libHelloNative.so  ：编译生成动态链接库libHelloNative.so
+4、执行 java HelloNative    ：完成调用native方法
+
+
+注意事项：
+1、javah命令在Java 10中已经移除了，可以通过javac生成native头文件
+2、动态链接库的命名必须书写规范，不同操作系统下的动态库后缀是不一样的（Windows下是.dll；Linux下是.so；Mac下是.jnilib）
+3、如果C++编译时提示无法找到jni.h
+    方法一：在/etc/profile中添加如下环境变量并source即可
+            export CPATH=$CPATH:$JAVA_HOME/include:$JAVA_HOME/include/linux
+            export C_INCLUDE_PATH=$C_INCLUDE_PATH:$JAVA_HOME/include:$JAVA_HOME/include/linux
+            export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$JAVA_HOME/include:$JAVA_HOME/include/linux
+    方法二：通过命令locate jni.h找到该文件的路径（如/usr/bin/jdk-19/include/jni.h）
+            执行gcc ./HelloNative.c -fPIC -shared -o libHelloNative.so -I/usr/bin/jdk-19/include/即可
+
+
