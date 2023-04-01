@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <utility>
+#include <vector>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -8,93 +10,111 @@
 #include <iostream>
 #include <fstream>
 #include <sys/wait.h>
+#include <unordered_map>
+#include <queue>
 using namespace std;
 
-// template<class T, T nullvalue, class D, D d> // auto d works in new compilers.
-// struct generic_delete
-// {
-//     class pointer
-//     {
-//         T t;
-//     public:
-//         pointer(T t) : t(t) {}
-//         pointer(std::nullptr_t = nullptr) : t(nullvalue) { }
-//         explicit operator bool() { return t != nullvalue; }
-//         friend bool operator ==(pointer lhs, pointer rhs) { return lhs.t == rhs.t; }
-//         friend bool operator !=(pointer lhs, pointer rhs) { return lhs.t != rhs.t; }
-//         operator T() { return t; }
-//     };
-//     void operator()(pointer p)
-//     {
-//         d(p);
-//     }
-// };
+template<class T, T nullvalue, class D, D d> // auto d works in new compilers.
+struct generic_delete
+{
+    class pointer
+    {
+        T t;
+    public:
+        pointer(T t) : t(t) {}
+        pointer(std::nullptr_t = nullptr) : t(nullvalue) { }
+        explicit operator bool() { return t != nullvalue; }
+        friend bool operator ==(pointer lhs, pointer rhs) { return lhs.t == rhs.t; }
+        friend bool operator !=(pointer lhs, pointer rhs) { return lhs.t != rhs.t; }
+        operator T() { return t; }
+    };
+    void operator()(pointer p)
+    {
+        d(p);
+    }
+};
 
+using unique_fd = std::unique_ptr<void, generic_delete<int, -1, decltype(&close), &close>>;      // Android中有现成的
+int k = 20; 
 
-// using unique_fd = std::unique_ptr<void, generic_delete<int, -1, decltype(&close), &close>>;      // Android中有现成的
-char dump_path[] = "/home/mi/work/c_c++/z.txt";
+int insertPosition(vector<pair<std::string, int>> &vec, int target) {
+    if (!vec.empty() && vec.back().second >= target) return vec.size();
 
-void RunDuCommand(int fd) {
+    int n = vec.size(), mid;
+    int left = 0, right = n - 1, ans = n;
+
+    while (left <= right) {
+        mid = ((right - left) >> 1) + left;
+        if (target >= vec[mid].second) {
+            ans = mid;
+            right = mid - 1;
+        } else {
+            left = mid + 1;
+        }
+    }
+
+    return ans;
+}
+
+void RunDuCommand(vector<pair<std::string, int>>& retVector) {
     const char kDuPath[] = "/usr/bin/du";       // Android源码中换成/system/bin/du
     const char kSortPath[] = "/usr/bin/sort";       // Android源码中换成/system/bin/sort
-    int stat_val;
 
-    // int fds[2];
-    // if (pipe(fds) != 0) {
-    //     printf("Failed to create pipe");
-    // }
-    // unique_fd read_fd(fds[0]);
-    // unique_fd write_fd(fds[1]);
-    //fcntl(read_fd.get(), F_SETFL, O_CLOEXEC | O_NONBLOCK);
-
-    const pid_t child_pid1 = fork();
-    if (child_pid1 == -1) {
-        printf("Failed to fork child");
+    int fds[2];
+    if (pipe(fds) != 0) {
+        printf("Failed to create pipe");
     }
-    if (child_pid1 == 0) {  // We are in the child process.
-        close(0);  // Don't want to read anything in this process.
-        //dup2(fd, 1);  // Replace existing stdout with the pipe.
-        // read_fd.reset();
-        // write_fd.reset();
-        system("du -d 5 /home/mi/work/c_c++/ | sort -n -k1 > /home/mi/work/c_c++/z.txt");
+    unique_fd read_fd(fds[0]);
+    unique_fd write_fd(fds[1]);
+    fcntl(read_fd.get(), F_SETFL, O_CLOEXEC);
 
-        // if (execl(kDuPath, "du", "-d 10", "/home/mi/work/c_c++/", nullptr) < 0) {
-        //     cout << "exec error" << endl;
-        // }
-    }
-    waitpid(child_pid1, &stat_val, 0);
-    if (WIFEXITED(stat_val)) {
-        cout << "child_pid1 exited with code " << WEXITSTATUS(stat_val) << endl;
-    } else {
-        cout << "child_pid1 exited abnormally" << endl;
+
+    const pid_t child_pid = fork();
+    if (child_pid == -1) {
+        cout << "Failed to fork child";
+        return;
+    } else if (child_pid == 0) {
+        close(0);
+        dup2(write_fd.get(), 1);
+        read_fd.reset();
+        write_fd.reset();
+        if (execl(kDuPath, "du", "-d 5", "/home/mi/study/language_study/", nullptr) < 0) {
+            cout << "Failed to execl in child process";
+            return;
+        }
     }
 
+    write_fd.reset();
+    char line[500], *p, *q;
+    int a;
+    FILE* file = fdopen(read_fd.get(), "r");
+    while (fgets(line, sizeof(line), file) != NULL) {
+        p = strtok(line, "	");
+        q = strtok(NULL, "\n");
+        // cout << p << "         " << q << endl;
+        // cout << strlen(p) << "         " << strlen(q) << endl;
 
-    // const pid_t child_pid2 = fork();
-    // if (child_pid2 == -1) {
-    //     printf("Failed to fork child");
-    // }
-    // if (child_pid2 == 0) {  // We are in the child process.
-    //     close(0);  // Don't want to read anything in this process.
-    //     dup2(fd, 1);  // Replace existing stdout with the pipe.
-    //     // read_fd.reset();
-    //     // write_fd.reset();
+        a = atoi(p);
+        // cout << "a = " << a << endl;
+        int position = insertPosition(retVector, a);
+        if (position > k) continue;
 
-    //     if (execl(kSortPath, "sort", "-n", "-k1", "/home/mi/work/c_c++/z.txt", nullptr) < 0) {
-    //         cout << "exec error" << endl;
-    //     }
-    // }
-    // waitpid(child_pid2, &stat_val, 0);
-    // if (WIFEXITED(stat_val)) {
-    //     cout << "child_pid2 exited with code " << WEXITSTATUS(stat_val) << endl;
-    // } else {
-    //     cout << "child_pid2 exited abnormally" << endl;
-    // }
+        retVector.insert(retVector.begin() + position, make_pair(q, a));
+        if (retVector.size() > k) retVector.pop_back();
+    }
+
+    return;
 }
 
 int main(int argc, char** argv){
-    int fd = open(dump_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-    RunDuCommand(fd);
-    close(fd);
+    vector<pair<std::string, int>> retVector;
+    RunDuCommand(retVector);
+    cout << "\n \n" << "Top " << k << " file list as below : " << endl;
+    std::vector<std::string> retVec;
+    for (int i = 0; i < retVector.size(); i++) {
+        retVec.push_back(std::to_string(retVector[i].second).append("\t\t").append(retVector[i].first));
+        // cout << retVector[i].second << "\t\t" << retVector[i].first << endl;
+        cout << retVec[i] << endl;
+    }
     return 0;
 }
