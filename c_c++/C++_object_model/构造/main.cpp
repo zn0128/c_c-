@@ -82,7 +82,7 @@ int main() {
     Student s1;                                              // 无参构造
     Student s2(15, sp_age);                                  // 又参构造
     Student s3(s1);                                          // 拷贝构造
-    s3 = s2;                                                 // 拷贝赋值，通过重载运算符=来实现，和深拷贝一样需要避免重复释放内存
+mi
     Student s4(move(s1));                                    // 移动构造，通过move语句生成右值来实现
     s4 = move(s2);                                           // 移动赋值，通过重载运算符=来实现，和移动构造一样
 

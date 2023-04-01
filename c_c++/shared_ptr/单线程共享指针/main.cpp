@@ -100,6 +100,11 @@ void fun_shared_ptr() {
     cout << "引用计数 = " << sp1.use_count() << endl;       // 获取引用计数
 
     shared_ptr<int> sp4 = make_shared<int>(2);             //  使用make_shared的初始化方式，只会在堆区new一次，效率更高
+
+    // 同一普通指针不能托管给多个shared_ptr，否则会多次delete，造成程序崩溃
+    // int* zn = new int(2);
+    // shared_ptr<int> sp5(zn);
+    // shared_ptr<int> sp6(zn);
 }
 
 // shared_ptr的使用陷阱：如果A中有B的智能指针、B中有A的智能指针，当他们相互持有对方的引用，会因为循环引用无法释放内存
