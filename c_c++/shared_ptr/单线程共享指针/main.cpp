@@ -78,7 +78,7 @@ void fun_unique_ptr() {
     vector<unique_ptr<string>> vec;
     // vec.push_back(up3);                              // 不允许直接赋值
     vec.push_back(move(up3));                           // 需要通过右值构造赋值
-    
+
     unique_ptr<string> up4(new string("Hello JiangXI"));
     // unique_ptr中一些可能用到的成员函数
     cout << "通过运算符 * 返回普通对象 ：" << (*up4) << endl;           // 能够通过*或者->操作普通对象或普通指针的原因是在类中重载了这两个运算符
@@ -94,12 +94,10 @@ void fun_unique_ptr() {
 // 为了解决上述局限性，让指针对象可以被共享，shared_ptr便出现了
 // 核心思想：当出现智能指针的拷贝时，引用计数+1；当智能指针析构时，引用计数-1，如果引用计数为0，就将这块内存释放
 void fun_shared_ptr() {
-    shared_ptr<int> sp1(new int(1));                       // 使用这种初始化方式，会在堆区new两次，效率更低
+    shared_ptr<int> sp1 = make_shared<int>(1);                       // 使用make_shared的初始化方式，只会在堆区new一次，效率更高
     shared_ptr<int> sp2(sp1);
     shared_ptr<int> sp3 = sp2;
     cout << "引用计数 = " << sp1.use_count() << endl;       // 获取引用计数
-
-    shared_ptr<int> sp4 = make_shared<int>(2);             //  使用make_shared的初始化方式，只会在堆区new一次，效率更高
 
     // 同一普通指针不能托管给多个shared_ptr，否则会多次delete，造成程序崩溃
     // int* zn = new int(2);
